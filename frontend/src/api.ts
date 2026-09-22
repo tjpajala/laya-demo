@@ -2,8 +2,8 @@ import type {
   ComparisonResponse,
   DatasetsResponse,
   ModelName,
+  RunBatchResponse,
   RunStatusResponse,
-  Split,
 } from "./types";
 
 async function asJson<T>(res: Response): Promise<T> {
@@ -18,18 +18,18 @@ export async function getDatasets(): Promise<DatasetsResponse> {
   return asJson<DatasetsResponse>(await fetch("/api/datasets"));
 }
 
-export async function startRun(
+export async function startRuns(
   model: ModelName,
-  splits: Split[],
+  datasets: string[],
   limit: number | null,
   forceRerun = false
-): Promise<RunStatusResponse> {
+): Promise<RunBatchResponse> {
   const res = await fetch("/api/runs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, splits, limit, force_rerun: forceRerun }),
+    body: JSON.stringify({ model, datasets, limit, force_rerun: forceRerun }),
   });
-  return asJson<RunStatusResponse>(res);
+  return asJson<RunBatchResponse>(res);
 }
 
 export async function getRun(slug: string): Promise<RunStatusResponse> {
@@ -42,10 +42,10 @@ export async function deleteRun(slug: string): Promise<void> {
 }
 
 export async function getComparison(
-  splits: Split[],
+  datasets: string[],
   limit: number | null
 ): Promise<ComparisonResponse> {
-  const params = new URLSearchParams({ splits: splits.join(",") });
+  const params = new URLSearchParams({ datasets: datasets.join(",") });
   if (limit) params.set("limit", String(limit));
   const res = await fetch(`/api/comparison?${params.toString()}`);
   return asJson<ComparisonResponse>(res);

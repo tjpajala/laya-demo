@@ -7,7 +7,7 @@ from pathlib import Path
 
 MODELS_DIR = Path(os.environ.get("MODELS_DIR", "/models"))
 CACHE_DIR = Path(os.environ.get("APP_CACHE_DIR", "/app/cache"))
-DATA_DIR = Path(__file__).parent / "data" / "jevbench"
+DATA_DIR = Path(__file__).parent / "data"
 
 LAYA_MODEL_ID = os.environ.get("LAYA_MODEL_ID", "convaiinnovations/laya-typed-decisions")
 

@@ -4,21 +4,20 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-Split = Literal["easy", "original", "hard"]
 Model = Literal["laya", "open_jev"]
 
 
 class RunRequest(BaseModel):
     model: Model
-    splits: list[Split] = Field(min_length=1)
-    limit: int | None = Field(default=None, gt=0)
+    datasets: list[str] = Field(min_length=1)
+    limit: int | None = Field(default=None, gt=0, description="cap applied per dataset")
     force_rerun: bool = False
 
 
 class RunStatusResponse(BaseModel):
     slug: str
     model: str
-    splits: list[str]
+    dataset: str
     limit: int | None
     status: Literal["running", "done", "failed"]
     n_planned: int
@@ -27,21 +26,32 @@ class RunStatusResponse(BaseModel):
     summary: dict[str, Any] | None = None
 
 
-class SplitInfo(BaseModel):
+class RunBatchResponse(BaseModel):
+    runs: list[RunStatusResponse]
+
+
+class DatasetInfo(BaseModel):
     name: str
+    label: str
     n: int
 
 
 class DatasetsResponse(BaseModel):
-    splits: list[SplitInfo]
+    datasets: list[DatasetInfo]
 
 
-class ComparisonEntry(BaseModel):
+class DatasetMetric(BaseModel):
+    dataset: str
     slug: str
     ready: bool
     summary: dict[str, Any] | None = None
 
 
+class ModelComparisonEntry(BaseModel):
+    per_dataset: list[DatasetMetric]
+    combined: dict[str, Any] | None = None  # pooled summarize() over all selected+ready datasets
+
+
 class ComparisonResponse(BaseModel):
-    laya: ComparisonEntry
-    open_jev: ComparisonEntry
+    laya: ModelComparisonEntry
+    open_jev: ModelComparisonEntry

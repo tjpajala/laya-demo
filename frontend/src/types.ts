@@ -1,14 +1,14 @@
-export type Split = "easy" | "original" | "hard";
 export type ModelName = "laya" | "open_jev";
 export type RunState = "running" | "done" | "failed";
 
-export interface SplitInfo {
-  name: Split;
+export interface DatasetInfo {
+  name: string;
+  label: string;
   n: number;
 }
 
 export interface DatasetsResponse {
-  splits: SplitInfo[];
+  datasets: DatasetInfo[];
 }
 
 export interface MetricBlock {
@@ -47,7 +47,7 @@ export interface Summary extends MetricBlock {
 export interface RunStatusResponse {
   slug: string;
   model: ModelName;
-  splits: Split[];
+  dataset: string;
   limit: number | null;
   status: RunState;
   n_planned: number;
@@ -56,13 +56,23 @@ export interface RunStatusResponse {
   summary: Summary | null;
 }
 
-export interface ComparisonEntry {
+export interface RunBatchResponse {
+  runs: RunStatusResponse[];
+}
+
+export interface DatasetMetric {
+  dataset: string;
   slug: string;
   ready: boolean;
   summary: Summary | null;
 }
 
+export interface ModelComparisonEntry {
+  per_dataset: DatasetMetric[];
+  combined: Summary | null;
+}
+
 export interface ComparisonResponse {
-  laya: ComparisonEntry;
-  open_jev: ComparisonEntry;
+  laya: ModelComparisonEntry;
+  open_jev: ModelComparisonEntry;
 }

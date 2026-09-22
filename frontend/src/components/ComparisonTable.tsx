@@ -1,4 +1,4 @@
-import type { ComparisonResponse, MetricBlock, Summary } from "../types";
+import type { ComparisonResponse, DatasetInfo, MetricBlock, ModelComparisonEntry, Summary } from "../types";
 
 function pct(v: number | null | undefined): string {
   return v == null ? "-" : `${(v * 100).toFixed(1)}%`;
@@ -6,6 +6,10 @@ function pct(v: number | null | undefined): string {
 
 function num3(v: number | null | undefined): string {
   return v == null ? "-" : v.toFixed(3);
+}
+
+function labelFor(datasetInfo: DatasetInfo[], name: string): string {
+  return datasetInfo.find((d) => d.name === name)?.label ?? name;
 }
 
 const METRIC_ROWS: { label: string; get: (s: Summary) => string }[] = [
@@ -29,28 +33,32 @@ function perFamilyRows(a: Record<string, MetricBlock>, b: Record<string, MetricB
   }));
 }
 
-export function ComparisonTable({ comparison }: { comparison: ComparisonResponse }) {
-  const { laya, open_jev: openJev } = comparison;
-
-  if (!laya.ready || !openJev.ready) {
+function CombinedTable({
+  laya,
+  openJev,
+}: {
+  laya: ModelComparisonEntry;
+  openJev: ModelComparisonEntry;
+}) {
+  if (!laya.combined || !openJev.combined) {
+    const missing = (entry: ModelComparisonEntry) =>
+      entry.per_dataset.filter((d) => !d.ready).map((d) => d.dataset);
     return (
       <p className="hint">
-        Run both models on the same dataset scope to see a comparison.
-        {!laya.ready && " Laya has no cached run for this scope yet."}
-        {!openJev.ready && " Open-Jev has no cached run for this scope yet."}
+        Run every selected dataset for both models to see a combined comparison.
+        {!laya.combined && ` Laya is missing: ${missing(laya).join(", ")}.`}
+        {!openJev.combined && ` Open-Jev is missing: ${missing(openJev).join(", ")}.`}
       </p>
     );
   }
-
-  const ls = laya.summary as Summary;
-  const os = openJev.summary as Summary;
-
+  const ls = laya.combined;
+  const os = openJev.combined;
   return (
     <>
       <table className="comparison-table">
         <thead>
           <tr>
-            <th>Metric</th>
+            <th>Metric (combined across selected datasets)</th>
             <th>Laya</th>
             <th>Open-Jev</th>
           </tr>
@@ -66,7 +74,7 @@ export function ComparisonTable({ comparison }: { comparison: ComparisonResponse
         </tbody>
       </table>
 
-      <h3>Per-family accuracy</h3>
+      <h3>Per-family accuracy (combined)</h3>
       <table className="comparison-table">
         <thead>
           <tr>
@@ -85,6 +93,61 @@ export function ComparisonTable({ comparison }: { comparison: ComparisonResponse
           ))}
         </tbody>
       </table>
+    </>
+  );
+}
+
+function PerDatasetTable({
+  comparison,
+  datasetInfo,
+}: {
+  comparison: ComparisonResponse;
+  datasetInfo: DatasetInfo[];
+}) {
+  const datasetNames = comparison.laya.per_dataset.map((d) => d.dataset);
+  const byName = (entry: ModelComparisonEntry, name: string) =>
+    entry.per_dataset.find((d) => d.dataset === name);
+
+  return (
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Dataset</th>
+          <th>Laya accuracy</th>
+          <th>Open-Jev accuracy</th>
+        </tr>
+      </thead>
+      <tbody>
+        {datasetNames.map((name) => {
+          const lm = byName(comparison.laya, name);
+          const om = byName(comparison.open_jev, name);
+          return (
+            <tr key={name}>
+              <td>{labelFor(datasetInfo, name)}</td>
+              <td>{lm?.ready ? pct(lm.summary?.accuracy) : "not run"}</td>
+              <td>{om?.ready ? pct(om.summary?.accuracy) : "not run"}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+export function ComparisonTable({
+  comparison,
+  datasetInfo,
+}: {
+  comparison: ComparisonResponse;
+  datasetInfo: DatasetInfo[];
+}) {
+  return (
+    <>
+      <h3>Per-dataset accuracy</h3>
+      <PerDatasetTable comparison={comparison} datasetInfo={datasetInfo} />
+
+      <h3>Combined</h3>
+      <CombinedTable laya={comparison.laya} openJev={comparison.open_jev} />
     </>
   );
 }

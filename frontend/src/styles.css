@@ -127,6 +127,44 @@ header h1 {
   border-color: var(--err);
 }
 
+.badge-idle {
+  opacity: 0.6;
+}
+
+.dataset-rows {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dataset-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.dataset-row .badge {
+  margin-bottom: 0;
+}
+
+.dataset-row-name {
+  flex: 1 1 auto;
+  min-width: 8rem;
+  font-weight: 500;
+}
+
+button.small {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
 .progress {
   display: flex;
   align-items: center;

@@ -1,9 +1,11 @@
 """In-memory job orchestration over the on-disk cache.
 
-Jobs run on a background thread per (model, splits, limit) combination. The
-slug is deterministic, so re-requesting an identical configuration either
-attaches to the job already running or returns the cached result instantly;
-nothing is re-run unless the cache was explicitly cleared first.
+Jobs run on a background thread per (model, dataset, limit) combination.
+The slug is deterministic, so re-requesting an identical configuration
+either attaches to the job already running or returns the cached result
+instantly; nothing is re-run unless the cache was explicitly cleared
+first. Each dataset is its own job - requesting multiple datasets at once
+is the API layer's job (main.py), by calling start_or_get once per dataset.
 """
 
 from __future__ import annotations
@@ -25,7 +27,7 @@ from .vendor.jevbench.tasks import dataset_hash
 class JobState:
     slug: str
     model: str
-    splits: list[str]
+    dataset: str
     limit: int | None
     n_planned: int
     status: str = "running"  # running | done | failed
@@ -44,11 +46,11 @@ class JobManager:
             return self._jobs.get(slug)
 
     def start_or_get(
-        self, model: str, splits: list[str], limit: int | None, force_rerun: bool = False
+        self, model: str, dataset: str, limit: int | None, force_rerun: bool = False
     ) -> JobState:
-        tasks = datasets.load_tasks(splits, limit)
+        tasks = datasets.load_dataset(dataset, limit)
         dhash = dataset_hash(tasks)
-        slug = cache.make_slug(model, splits, limit, dhash)
+        slug = cache.make_slug(model, dataset, limit, dhash)
 
         with self._lock:
             existing = self._jobs.get(slug)
@@ -58,14 +60,14 @@ class JobManager:
                 cache.clear(slug)
             elif cache.is_cached(slug):
                 job = JobState(
-                    slug=slug, model=model, splits=splits, limit=limit,
+                    slug=slug, model=model, dataset=dataset, limit=limit,
                     n_planned=len(tasks), status="done", finished_at=time.time(),
                 )
                 self._jobs[slug] = job
                 return job
             else:
                 cache.clear(slug)  # drop any stale/partial results from an earlier crash
-            job = JobState(slug=slug, model=model, splits=splits, limit=limit, n_planned=len(tasks))
+            job = JobState(slug=slug, model=model, dataset=dataset, limit=limit, n_planned=len(tasks))
             self._jobs[slug] = job
 
         threading.Thread(target=self._run, args=(job, tasks), daemon=True).start()
