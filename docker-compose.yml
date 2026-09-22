@@ -1,0 +1,40 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      - MODELS_DIR=/models
+      - APP_CACHE_DIR=/app/cache
+    volumes:
+      - results_cache:/app/cache
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/datasets',timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - internal
+
+networks:
+  # Not marked internal: true - on Docker Desktop that also blocks the
+  # frontend's published host port (docker port shows nothing bound), not
+  # just outbound internet. Runtime "no web access" is enforced instead by
+  # HF_HUB_OFFLINE/TRANSFORMERS_OFFLINE in backend/Dockerfile, which makes
+  # the model-loading libraries refuse network calls outright.
+  internal:
+    driver: bridge
+
+volumes:
+  results_cache:

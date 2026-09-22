@@ -1,0 +1,5 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+laya>=0.3.4
+open-jev[train] @ git+https://github.com/Zefan-Cai/Open-Jev.git@ed45657bf726c3b77408942830e5578f99df904e
